@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from PySide6.QtCore import Qt, QTimer, QTime
+from PySide6.QtCore import Qt, QTimer, QTime,QSettings
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QHBoxLayout, QFileDialog, QComboBox, QLabel, QSlider
 
@@ -63,10 +63,14 @@ class VideoPlayer(QWidget):
         # 初始化定时器
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
+        # 加载上次视频文件路径
+        self.settings = QSettings("MyApp", "VideoPlayer")
+        self.last_video_path = self.settings.value("last_video_path", "", type=str)
 
     def load_video_dialog(self):
         """打开文件选择对话框，选择视频文件"""
-        video_path, _ = QFileDialog.getOpenFileName(self, "选择视频文件", "", "视频文件 (*.mp4 *.avi *.mov *.mkv)")
+        # 如果有上次的视频路径，默认选择该路径
+        video_path, _ = QFileDialog.getOpenFileName(self, "选择视频文件", self.last_video_path, "视频文件 (*.mp4 *.avi *.mov *.mkv)")
         if video_path:
             self.load_video(video_path)
 
@@ -88,8 +92,8 @@ class VideoPlayer(QWidget):
 
         # 更新总时间标签
         self.update_time_labels()
-
-        self.timer.start(1000 // int(self.fps))  # 每秒播放一帧
+        self.update_frame()
+        # self.timer.start(1000 // int(self.fps))  # 每秒播放一帧
 
     def update_frame(self):
         """定期更新视频显示"""
@@ -154,6 +158,36 @@ class VideoPlayer(QWidget):
     def update_time_labels(self):
         """更新总时间标签"""
         self.total_time_label.setText(QTime(0, 0).addSecs(int(self.total_time)).toString('mm:ss'))
+
+    def set_current_time(self, seconds):
+        """
+        设置视频播放的当前时间（秒）。
+        :param seconds: 目标时间（单位：秒）
+        """
+        if self.cap is None:
+            return
+        
+        # 将时间（秒）转换为帧数
+        frame_position = int(seconds * self.fps)
+        
+        # 限制帧数范围
+        frame_position = min(frame_position, self.frame_count - 1)
+        
+        # 设置视频播放的位置
+        self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_position)
+        
+        # 更新视频显示
+        ret, frame = self.cap.read()
+        if ret:
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            self.update_video_frame(frame)
+        
+        # 更新进度条
+        progress_value = (frame_position / self.frame_count) * 100
+        self.progress_slider.setValue(progress_value)
+
+        # 更新当前时间标签
+        self.current_time_label.setText(QTime(0, 0).addSecs(int(seconds)).toString('mm:ss'))
 
 class VideoSplitterApp(QWidget):
     def __init__(self):
