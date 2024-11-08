@@ -13,7 +13,7 @@ import json
 
 class VideoPlayer(QWidget):
     """自定义的视频播放组件，用于封装视频选择和预览框"""
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, can_select_video=True):
         super().__init__(parent)
 
         # 视频显示框 (QLabel)
@@ -26,8 +26,9 @@ class VideoPlayer(QWidget):
         self.play_pause_button.clicked.connect(self.toggle_play_pause)
 
         # 选择视频按钮
-        self.select_video_button = QPushButton("选择视频", self)
-        self.select_video_button.clicked.connect(self.load_video_dialog)
+        if can_select_video:
+            self.select_video_button = QPushButton("选择视频", self)
+            self.select_video_button.clicked.connect(self.load_video_dialog)
 
         # 初始化视频状态
         self.is_playing = False
@@ -201,36 +202,13 @@ class VideoSplitterApp(QWidget):
         # 视频分割点存储
         self.split_points = []
 
-        # 创建标签选择框
-        self.label_combo = QComboBox(self)
-        self.label_combo.addItem("镜头切换")
-        self.label_combo.addItem("场景切换")
-        self.label_combo.addItem("过渡")
-
-        # 标记分割点按钮
-        self.mark_button = QPushButton("标记分割点", self)
-        self.mark_button.clicked.connect(self.set_split_point)
-
-        # 切分视频按钮
-        self.split_button = QPushButton("切分视频", self)
-        self.split_button.clicked.connect(self.split_video)
-
         # 合成视频按钮
-        self.combine_button = QPushButton("合成视频", self)
+        self.combine_button = QPushButton("处理视频", self)
         self.combine_button.clicked.connect(self.combine_video)
 
         # 视频选择和预览组件
-        self.video_player_1 = VideoPlayer(self)
-        self.video_player_2 = VideoPlayer(self)
-
-        # 时间显示标签
-        self.current_time_label = QLabel("当前时间: 00:00", self)
-        self.total_time_label = QLabel("总时间: 00:00", self)
-
-        # 滑动条
-        self.progress_slider = QSlider(Qt.Horizontal, self)
-        self.progress_slider.setRange(0, 100)
-        self.progress_slider.sliderMoved.connect(self.update_video_position)
+        self.video_player_1 = VideoPlayer(self,True)
+        self.video_player_2 = VideoPlayer(self, False)
 
         # 布局设置
         video_layout = QHBoxLayout()
@@ -238,24 +216,12 @@ class VideoSplitterApp(QWidget):
         video_layout.addWidget(self.video_player_2)  # 第二个视频播放框
 
         control_layout = QHBoxLayout()
-        control_layout.addWidget(self.split_button)
         control_layout.addWidget(self.combine_button)
 
-        slice_layout = QHBoxLayout()
-        slice_layout.addWidget(QLabel("选择分割类型"))
-        slice_layout.addWidget(self.label_combo)
-        slice_layout.addWidget(self.mark_button)
-
-        time_layout = QHBoxLayout()
-        time_layout.addWidget(self.current_time_label)
-        time_layout.addWidget(self.progress_slider)
-        time_layout.addWidget(self.total_time_label)
 
         layout = QVBoxLayout()
         layout.addLayout(video_layout)  # 视频显示框布局
-        layout.addLayout(slice_layout)
         layout.addLayout(control_layout)
-        layout.addLayout(time_layout)
 
         self.setLayout(layout)
         self.split_points = []
